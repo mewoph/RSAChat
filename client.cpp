@@ -40,7 +40,7 @@ http://csapp.cs.cmu.edu/public/ics2/code/netp/echoclient.c
 int main(int argc, char *argv[]) {
 
 	int clientfd, port;
-	char *host, buf[MAXLINE];
+	char *host, buf[1024];
 	fd_set rset;
 
 	if (argc != 3) {
@@ -63,17 +63,21 @@ int main(int argc, char *argv[]) {
 		FD_ZERO(&rset);
 		FD_SET(0, &rset);
 		FD_SET(clientfd, &rset);
-		select(clientfd+1, &rset, NULL, NULL, NULL);
+		select(clientfd + 1, &rset, NULL, NULL, NULL);
 
 		if (FD_ISSET(0, &rset)) {
 
 			bzero(&buf, sizeof(buf));
-			buf[MAXLINE - 1] = '\0';
+			buf[1023] = '\0';
 
-			cout << "[CLIENT] Enter message: ";
-			cin >> buf;
+			cin.getline(buf, sizeof(buf));
 		
 			int bytesWritten = write(clientfd, buf, sizeof(buf));
+
+			if (strstr(buf, ".quit") != NULL) {
+				Close(clientfd);
+				exit(0);
+			}
 
 
 		}
@@ -81,11 +85,11 @@ int main(int argc, char *argv[]) {
 		if (FD_ISSET(clientfd,&rset)) {
 
 			bzero(&buf, sizeof(buf));
-			buf[MAXLINE - 1] = '\0';
+			buf[1023] = '\0';
 
 			// Read reply from server
 
-			int bytesRead = readAll(clientfd, buf);
+			int bytesRead = recv(clientfd, &buf, sizeof(buf), 0);
 
 			printf("Server: %s\n", buf);
 

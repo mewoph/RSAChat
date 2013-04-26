@@ -66,9 +66,9 @@ void* respondRequest(void* desc) {
 		FD_ZERO(&rset);
 		FD_SET(0, &rset);
 		FD_SET(fd, &rset);
-		select(fd+1, &rset, NULL, NULL, NULL);
+		select(fd + 1, &rset, NULL, NULL, NULL);
 
-		if (FD_ISSET(0,&rset)) {
+		if (FD_ISSET(0, &rset)) {
 
 			// write message
 
@@ -86,14 +86,14 @@ void* respondRequest(void* desc) {
 
 		} 
 
-		if (FD_ISSET(fd,&rset)) {
+		if (FD_ISSET(fd, &rset)) {
 		 	
 		 	// read message
 
 			bzero(&buf, sizeof(buf));
 			buf[1023] = '\0';
 
-			int bytesRead = readAll(fd, buf);
+			int bytesRead = recv(fd, &buf, sizeof(buf), 0);
 
 			if (bytesRead < 0) {
 				cout << "Read failed." << endl;
