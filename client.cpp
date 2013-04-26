@@ -41,6 +41,7 @@ int main(int argc, char *argv[]) {
 
 	int clientfd, port;
 	char *host, buf[MAXLINE];
+	fd_set rset;
 
 	if (argc != 3) {
 		cout << "Usage: ./client <host> <port>"  << endl;
@@ -59,35 +60,37 @@ int main(int argc, char *argv[]) {
 
 	while(1) {
 
-		// Read message from client
+		FD_ZERO(&rset);
+		FD_SET(0, &rset);
+		FD_SET(clientfd, &rset);
+		select(clientfd+1, &rset, NULL, NULL, NULL);
 
-		bzero(&buf, sizeof(buf));
-		buf[MAXLINE - 1] = '\0';
+		if (FD_ISSET(0, &rset)) {
 
-		int bytesRead = readAll(fd, buf);
+			bzero(&buf, sizeof(buf));
+			buf[MAXLINE - 1] = '\0';
 
-		if (bytesRead < 0) {
-			cout << "Read failed." << endl;
-			exit(0);
-		}
-
-		cout << "Server said: " << buf << endl;
-
-		// Quit the server
-		if (strstr(buf, ".quit") != NULL) {
-			
-			printf("Exit server\n");
-			exit(0);
-
-		} else {
-
-		// ask user for input for the reply
 			cout << "[CLIENT] Enter message: ";
-			char reply[2048];
-			cin >> reply;
-			write(fd, reply, strlen(reply));
-			bzero(&reply, sizeof(reply));
+			cin >> buf;
+		
+			int bytesWritten = write(clientfd, buf, sizeof(buf));
+
+
 		}
+
+		if (FD_ISSET(clientfd,&rset)) {
+
+			bzero(&buf, sizeof(buf));
+			buf[MAXLINE - 1] = '\0';
+
+			// Read reply from server
+
+			int bytesRead = readAll(clientfd, buf);
+
+			printf("Server: %s\n", buf);
+
+			bzero(&buf, sizeof(buf));
+	}
 
 	}
 	

@@ -1,6 +1,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <math.h>
+#include <vector>
+#include <string.h>
 #include "rsa.h"
 
 using namespace std;
@@ -131,8 +133,56 @@ long RSA :: encrypt(long a, long b, long c) {
     return answer;
 }
 
+/**
+* Encrypt the given string with the specified key (b,c)
+* Return a vector of encrypted characters
+*/
+vector<long> RSA :: encryptAll(char* string, long b, long c) {
 
+    vector<long> encrypted;
 
+    for(int i = 0; i < strlen(string); i++) {
+        long a = encrypt(string[i], b, c);
+        encrypted.push_back(a);
+        cout << " " << a;
+    }
+
+    cout << "\n";
+
+    return encrypted;
+}
+
+/**
+* Decrypt the given vector of characters with the speficied key (b, c)
+*/
+void RSA :: decryptAll(vector<long> encrypted, long b, long c) {
+
+    for(int i = 0; i < encrypted.size(); i++) {
+        cout << (char)encrypt(encrypted.at(i), b, c);
+    }
+
+    cout << "\n";
+}
+
+/**
+* Guess the private key from the specified public key (e, c)
+*/
+long RSA :: findPrivateKey(long e, long c) {
+
+    long key;
+
+    // key = (k * phi(c) + 1) / e
+
+    // find phi(c)
+    // c is product of two primes
+        // find all the prime factors of c
+        // try all (?)
+    // phi(c) = (a - 1)(b - 1)
+
+    // We know that k * phi(c) + 1 is evenly divisible by e
+    // try k * phi(c) + 1 = e, 2e, 3e....
+
+}
 
 int main(int argc, char *argv[]) {
 
@@ -142,7 +192,7 @@ int main(int argc, char *argv[]) {
 
     RSA *rsa = new RSA();
 
-    cout << "-----IMPLEMENTATION OF RSA ALGORITHM-----";
+    cout << "-----RSA ENCRYPTION-----";
     cout << endl << endl << "Enter n-th prime:";
     cin >> a;
 
@@ -158,7 +208,7 @@ int main(int argc, char *argv[]) {
 
         cout << "a: " << a << " b: " << b << endl;
         c = rsa->multiply(a,b);
-        cout << endl << "-----Intmediate Calculations-----";
+        cout << endl << "-----Intermediate Calculations-----";
         cout << endl << "c :"<< c;
 
         m = rsa->multiply(a-1, b-1);
@@ -177,18 +227,20 @@ int main(int argc, char *argv[]) {
         cout << endl << "Private Key : (" << d << "," << c << ")";
 
         cout << endl << endl << endl << "----ENCRYPTION----" << endl;
-        cout << "Enter text to encrypt: ";
-        cin >> letter;
 
-        long letterLong = (long)letter;
 
-        long encrypted = rsa->encrypt(letterLong, e, c);
+        cout << "Enter word to encrypt: " << endl;
+        char reply[1024];
+        cin.ignore();
+        cin.getline(reply, sizeof(reply));
 
-        cout << "Encrypted text: " << encrypted << endl;
+        cout << "Response is " << reply << endl;
 
-        long decrypted = rsa->encrypt(encrypted, d, c);
 
-        cout << "Decrypted Text: " << (char)decrypted << endl;
+        vector<long> cipher = rsa->encryptAll(reply, e, c);
+
+        cout << "Decrypted Text: ";
+        rsa->decryptAll(cipher, d, c);
 
     } else {
 

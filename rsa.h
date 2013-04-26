@@ -45,6 +45,12 @@ public:
 
 	long encrypt(long a, long b, long c);
 
+	vector<long> encryptAll(char* string, long b, long c);
+
+	void decryptAll(vector<long> encypted, long b, long c);
+
+	long findPrivateKey(long e, long c);
+
 };
 
 #endif

@@ -47,52 +47,69 @@ int readAll(int fd, char* buffer) {
 	return bytesRead;
 }
 
+
+
 /**
 * Respond to a request
-* Adapted from csapp's Tiny Server
+* Adapted from http://www.thiyagaraaj.com/tutorials/unix-network-programming-example-programs/tcp-chat-programming-in-unix-using-c-programmin
 */
 void* respondRequest(void* desc) {
 
 	int fd = *(int*)desc;
 
-	char buf[MAXLINE];
+	fd_set rset;
+
+	char buf[1024];
 
 	while(1) {
 
-		// Read message from client
+		FD_ZERO(&rset);
+		FD_SET(0, &rset);
+		FD_SET(fd, &rset);
+		select(fd+1, &rset, NULL, NULL, NULL);
 
-		bzero(&buf, sizeof(buf));
-		buf[MAXLINE - 1] = '\0';
+		if (FD_ISSET(0,&rset)) {
 
-		int bytesRead = readAll(fd, buf);
+			// write message
 
-		if (bytesRead < 0) {
-			cout << "Read failed." << endl;
-			exit(0);
-		}
-
-		cout << "Client said: " << buf << endl;
-
-		// Quit the server
-		if (strstr(buf, ".quit") != NULL) {
+			bzero(&buf, sizeof(buf));
+			buf[1023] = '\0';
+        	cin.getline(buf, sizeof(buf));
 			
-			printf("Exit server\n");
-			exit(0);
+			int bytesWrote = write(fd, buf, sizeof(buf));
 
-		} else {
+			if (bytesWrote < 0) {
+				cout << "Write failed." << endl;
+				exit(0);
+			}
+			
 
-		// ask user for input for the reply
-			cout << "[SERVER] Enter message: ";
-			char reply[2048];
-			cin >> reply;
-			write(fd, reply, strlen(reply));
-			bzero(&reply, sizeof(reply));
-			buf[MAXLINE - 1] = '\0';
-		}
+		} 
+
+		if (FD_ISSET(fd,&rset)) {
+		 	
+		 	// read message
+
+			bzero(&buf, sizeof(buf));
+			buf[1023] = '\0';
+
+			int bytesRead = readAll(fd, buf);
+
+			if (bytesRead < 0) {
+				cout << "Read failed." << endl;
+				exit(0);
+			}
+
+			if (strstr(buf, ".quit") != NULL) {	
+				printf("Exit server\n");
+				exit(0);
+			} 
+
+			cout << "\nClient said: " << buf << endl;
+
+		 } 
+		
 	}
-
-	bzero(&buf, sizeof(buf));
-	buf[MAXLINE - 1] = '\0';
 
 }
 
