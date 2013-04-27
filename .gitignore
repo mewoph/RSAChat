@@ -16,3 +16,5 @@ keys.dSYM/Contents/Info.plist
 keys.dSYM/Contents/Resources/DWARF/keys
 
 keys
+
+*.plist

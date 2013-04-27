@@ -13,7 +13,8 @@
 
 using namespace std;
 
-RSA* rsa;
+RSA* rsaSender;
+RSA* rsaReceiver;
 
 /**
 * Edit the key associated with the current session
@@ -22,18 +23,18 @@ void editKey() {
 
 	cout << "--------------------" << endl << endl;
 
-	cout << "Public key is currently (" << rsa->getPublicKey() << ", " << rsa->getProduct() << ")." << endl << endl;
+	cout << "Your recipient's key is currently (" << rsaReceiver->getPublicKey() << ", " << rsaReceiver->getProduct() << ")." << endl << endl;
 
 	long key, n;
-	cout << "Enter your new key: ";
+	cout << "Enter your recipient's new key: ";
 	cin >> key;
 	cout << "Enter the new product: ";
 	cin >> n;
 
-	rsa->setPublicKey(key);
-	rsa->setProduct(n);
+	rsaReceiver->setPublicKey(key);
+	rsaReceiver->setProduct(n);
 
-	cout << "Public key is now (" << rsa->getPublicKey() << ", " << rsa->getProduct() << ")." << endl << endl;
+	cout << "Your recipient's key is now (" << rsaReceiver->getPublicKey() << ", " << rsaReceiver->getProduct() << ")." << endl << endl;
 
 	cout << "--------------------" << endl << endl;
 
@@ -53,7 +54,7 @@ void findKey() {
 	cout << "Enter the product associated with the key: ";
 	cin >> n;
 
-	guess = rsa->findPrivateKey(key, n);
+	guess = rsaSender->findPrivateKey(key, n);
 
 	cout << "Try this key: (" << guess << "," << n << ")" << endl;
 
@@ -109,7 +110,7 @@ void* respondRequest(void* desc) {
 
 				char cipher[1024];
 	        	bzero(&cipher, sizeof(cipher));
-	        	rsa->getEncryptedText(buf, cipher);
+	        	rsaReceiver->getEncryptedText(buf, cipher);
 
 				// write encrypted message to client
 
@@ -150,7 +151,7 @@ void* respondRequest(void* desc) {
 
 			cout << "Client: " << buf << endl;
 			cout << "Decrypted Message: ";
-			rsa->getDecryptedText(buf);
+			rsaSender->getDecryptedText(buf);
 
 		 } 
 		
@@ -178,17 +179,35 @@ int main(int argc, char *argv[]) {
 
 	cout << "Let's set up a secure chat." << endl << endl;
 	cout << "--------------------" << endl << endl;
-	rsa = new RSA(); 
-	long key, n;
-	cout << "Enter your key: ";
-	cin >> key;
+
+	rsaSender = new RSA(); 
+
+	long senderPublicKey, senderPrivateKey, senderProduct;
+	cout << "Enter your public key: ";
+	cin >> senderPublicKey;
+	cout << "Enter your private key: ";
+	cin >> senderPrivateKey;
 	cout << "Enter the product: ";
-	cin >> n;
+	cin >> senderProduct;
 
-	rsa->setPublicKey(key);
-	rsa->setProduct(n);
+	rsaSender->setPublicKey(senderPublicKey);
+	rsaSender->setPrivateKey(senderPrivateKey);
+	rsaSender->setProduct(senderProduct);
 
-	cout << "Public key is now (" << rsa->getPublicKey() << ", " << rsa->getProduct() << ")." << endl << endl;
+	cout << "Your public key is now (" << rsaSender->getPublicKey() << ", " << rsaSender->getProduct() << ")." << endl << endl;
+
+	rsaReceiver = new RSA(); 
+
+	long receiverPublicKey, receiverProduct;
+	cout << "Enter your recipient's public key: ";
+	cin >> receiverPublicKey;
+	cout << "Enter the product associated with the recipient's key: ";
+	cin >> receiverProduct;
+
+	rsaReceiver->setPublicKey(receiverPublicKey);
+	rsaReceiver->setProduct(receiverProduct);
+
+	cout << "Your recipient's key is now (" << rsaReceiver->getPublicKey() << ", " << rsaReceiver->getProduct() << ")." << endl << endl;
 	cout << "Enter '.quit' to exit program, enter '.keys' to change your keys, enter '.crack' to guess key." << endl << endl;
 	cout << "HAPPY CHATTING" << endl << endl;
 	cout << "--------------------" << endl << endl;
