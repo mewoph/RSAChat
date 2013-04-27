@@ -1,6 +1,8 @@
 #ifndef RSAH
 #define RSAH
 
+#include <vector>
+
 using namespace std;
 
 class RSA {
@@ -12,10 +14,6 @@ protected:
 	long product;
 
 public:
-
-	RSA(long a, long b) {
-		product = a * b;
-	}
 
 	RSA() {}
 
@@ -33,7 +31,7 @@ public:
 
 	bool isPrime(long n);
 
-	long getPrime(long n);
+	long getPrime(int n);
 
 	long multiply(long m, long n);
 
@@ -49,7 +47,16 @@ public:
 
 	void decryptAll(vector<long> encypted, long b, long c);
 
+	vector<long> findPrimeFactors(long c);
+
 	long findPrivateKey(long e, long c);
+
+	void getEncryptedText(char* string, char* buffer);
+
+	vector<long> toEncryptedVector(char* string);
+
+	void getDecryptedText(char* string);
+
 
 };
 

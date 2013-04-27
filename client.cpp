@@ -9,33 +9,60 @@
 #include <errno.h>
 #include <pthread.h>
 #include <time.h>
+#include <vector>
 #include "csapp.h"
+#include "rsa.h"
 
 using namespace std;
 
+RSA *rsa;
+
 /**
-* Read entire message
+* Edit the key associated with the current session
 */
-int readAll(int fd, char* buffer) {
+void editKey() {
 
-	int bytesRead = 0;
-	char c;
+	cout << "--------------------" << endl << endl;
 
-	recv(fd, &c, sizeof(c), 0);
+	cout << "Public key is currently (" << rsa->getPrivateKey() << ", " << rsa->getProduct() << ")." << endl << endl;
 
-	while(c != '\0' && c != '\n') {
-		buffer[bytesRead] = c;
-		recv(fd, &c, sizeof(c), 0);
-		bytesRead++;
-	}
+	long key, n;
+	cout << "Enter your new key: ";
+	cin >> key;
+	cout << "Enter the new product: ";
+	cin >> n;
 
-	return bytesRead;
+	rsa->setPrivateKey(key);
+	rsa->setProduct(n);
+
+	cout << "Public key is now (" << rsa->getPrivateKey() << ", " << rsa->getProduct() << ")." << endl << endl;
+
+	cout << "--------------------" << endl << endl;
+
 }
 
 /**
-* Adapted from csapp's echo client
-http://csapp.cs.cmu.edu/public/ics2/code/netp/echoclient.c
+* Try to find private key
 */
+void findKey() {
+
+	long key, n, guess;
+
+	cout << "--------------------" << endl << endl;
+	
+	cout << "Enter the public key to guess the private key: ";
+	cin >> key;
+	cout << "Enter the product associated with the key: ";
+	cin >> n;
+
+	guess = rsa->findPrivateKey(key, n);
+
+	cout << "Try this key: (" << guess << "," << n << ")" << endl;
+
+	cout << "--------------------" << endl << endl;
+
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -58,6 +85,28 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
+	cout << "Now connected to " << host << endl;
+	
+
+	// Set up RSA for the client
+
+	cout << "Let's set up a secure chat." << endl << endl;
+	cout << "--------------------" << endl << endl;
+	rsa = new RSA();
+	long key, n;
+	cout << "Enter your key: ";
+	cin >> key;
+	cout << "Enter the product: ";
+	cin >> n;
+
+	rsa->setPrivateKey(key);
+	rsa->setProduct(n);
+
+	cout << "Private key is now (" << rsa->getPrivateKey() << ", " << rsa->getProduct() << ")." << endl << endl;
+	cout << "Enter '.quit' to exit program, enter '.keys' to change your keys, enter '.crack' to guess key." << endl << endl;
+	cout << "HAPPY CHATTING" << endl << endl;
+	cout << "--------------------" << endl << endl;
+
 	while(1) {
 
 		FD_ZERO(&rset);
@@ -70,19 +119,47 @@ int main(int argc, char *argv[]) {
 			bzero(&buf, sizeof(buf));
 			buf[1023] = '\0';
 
-			cin.getline(buf, sizeof(buf));
-		
-			int bytesWritten = write(clientfd, buf, sizeof(buf));
+			// get message from user
 
-			if (strstr(buf, ".quit") != NULL) {
+			cin.getline(buf, sizeof(buf));
+
+			// check for escaped keywords - .quit, .keys, .crack
+
+			if (strstr(buf, ".keys") != NULL) {
+				editKey();
+
+			} else if (strstr(buf, ".quit") != NULL) {
+				write(clientfd, buf, sizeof(buf));
+				cout << "Exit client." << endl;
 				Close(clientfd);
 				exit(0);
-			}
 
+			} else if (strstr(buf, ".crack") != NULL) {
+				findKey();
+
+
+			} else {
+
+				// encrypt message
+
+				char cipher[1024];
+	        	bzero(&cipher, sizeof(cipher));
+	        	rsa->getEncryptedText(buf, cipher);
+				
+				// write encrypted message to server
+			
+				int bytesWrote = write(clientfd, cipher, sizeof(cipher));
+
+				if (bytesWrote < 0) {
+					cout << "Write failed." << endl;
+					Close(clientfd);
+					exit(0);
+				}
+			}
 
 		}
 
-		if (FD_ISSET(clientfd,&rset)) {
+		if (FD_ISSET(clientfd, &rset)) {
 
 			bzero(&buf, sizeof(buf));
 			buf[1023] = '\0';
@@ -91,10 +168,20 @@ int main(int argc, char *argv[]) {
 
 			int bytesRead = recv(clientfd, &buf, sizeof(buf), 0);
 
-			printf("Server: %s\n", buf);
+			if (strstr(buf, ".quit") != NULL) {	
+				cout << "Exit server" << endl;
+				exit(0);
+			} 
+
+			// decrypt message
+
+			cout << "Server: " << buf << endl;
+			cout << "Decrypted Message: ";
+
+			rsa->getDecryptedText(buf);
 
 			bzero(&buf, sizeof(buf));
-	}
+		}
 
 	}
 	

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <vector>
 #include <string.h>
@@ -8,6 +9,7 @@
 using namespace std;
 
 /* Getters and Setters */
+
 long RSA :: getPublicKey() {
     return publicKey;
 }
@@ -31,7 +33,8 @@ void RSA :: setPrivateKey(long key) {
 void RSA :: setProduct(long newProduct) {
     product = newProduct;
 }
-/*------*/
+
+/*---------------------*/
 
 
 /**
@@ -53,7 +56,7 @@ bool RSA :: isPrime(long n) {
 /**
 * Get the n-th prime number
 */
-long RSA :: getPrime(long n) {
+long RSA :: getPrime(int n) {
 
     if (n < 1) {
      cout << "Invalid input" << endl;
@@ -144,10 +147,44 @@ vector<long> RSA :: encryptAll(char* string, long b, long c) {
     for(int i = 0; i < strlen(string); i++) {
         long a = encrypt(string[i], b, c);
         encrypted.push_back(a);
-        cout << " " << a;
+        // cout << " " << a;
     }
 
-    cout << "\n";
+    return encrypted;
+}
+
+/**
+* Encrypt the string and store encrypted message in buffer
+*/
+void RSA :: getEncryptedText(char * string, char* buffer) {
+
+    vector<long> encrypted = encryptAll(string, publicKey, product);
+
+    for(int i = 0; i < encrypted.size(); i++) {
+        char strLong[100];
+        long l = encrypted.at(i);
+        sprintf(strLong, "%ld", l);
+        strcat(buffer, " ");
+        strcat(buffer, strLong);
+    }
+
+}
+
+/**
+* Convert the encrypted char * to vector
+*/
+vector<long> RSA :: toEncryptedVector(char* cipher) {
+
+    vector<long> encrypted;
+
+    char *c;
+    c = strtok (cipher," ,.-");
+
+    while (c != NULL) {
+        long l = atol(c);
+        encrypted.push_back(l);
+        c = strtok (NULL, " ,.-");
+    }
 
     return encrypted;
 }
@@ -165,88 +202,56 @@ void RSA :: decryptAll(vector<long> encrypted, long b, long c) {
 }
 
 /**
+* Print the decrypted text to console
+*/
+void RSA :: getDecryptedText(char* cipher) {
+
+    vector<long> encrypted = toEncryptedVector(cipher);
+    decryptAll(encrypted, privateKey, product);
+}
+
+/**
+* Find the prime factors for the specified number
+*/
+vector<long> RSA :: findPrimeFactors(long c) {
+
+    vector<long> factors;
+
+    int i, j;
+
+    for(i = 1; i < c; i++) {
+
+        for(j = 1; j < c; j++) {
+
+            long a = getPrime(i);
+            long b = getPrime(j);
+
+            if (a * b == c) {
+                factors.push_back(a);
+                factors.push_back(b);
+                return factors;
+            }
+        }
+    }
+
+    return factors;
+
+}
+
+/**
 * Guess the private key from the specified public key (e, c)
 */
 long RSA :: findPrivateKey(long e, long c) {
 
-    long key;
 
-    // key = (k * phi(c) + 1) / e
+    vector<long> factors = findPrimeFactors(c);
 
-    // find phi(c)
-    // c is product of two primes
-        // find all the prime factors of c
-        // try all (?)
-    // phi(c) = (a - 1)(b - 1)
+    long i = factors.at(0);
+    long j = factors.at(1);
 
-    // We know that k * phi(c) + 1 is evenly divisible by e
-    // try k * phi(c) + 1 = e, 2e, 3e....
+    long m = multiply(i - 1, j - 1);
+    long d = findD(e, m);
 
-}
-
-int main(int argc, char *argv[]) {
-
-    long a,b,c,d,e,m;
-
-    char letter;
-
-    RSA *rsa = new RSA();
-
-    cout << "-----RSA ENCRYPTION-----";
-    cout << endl << endl << "Enter n-th prime:";
-    cin >> a;
-
-    cout<<"Enter m-th prime:";
-    cin >> b;
-
-    a = rsa->getPrime(a);
-    b = rsa->getPrime(b);
-
-    rsa->setProduct(a * b);
-
-    if ( rsa->isPrime(a) && rsa->isPrime(b) ) {
-
-        cout << "a: " << a << " b: " << b << endl;
-        c = rsa->multiply(a,b);
-        cout << endl << "-----Intermediate Calculations-----";
-        cout << endl << "c :"<< c;
-
-        m = rsa->multiply(a-1, b-1);
-        cout << endl << "m :" << m;
-
-        e = rsa->findE(m);
-        cout << endl << "e :" << e;
-        rsa->setPublicKey(e);
-
-        d = rsa->findD(e, m);
-        cout << endl << "d :" << d << endl;
-        rsa->setPrivateKey(d);
-
-        cout << endl << endl << endl <<"----KEYS----";
-        cout << endl << "Public Key : (" << e << "," << c << ")";
-        cout << endl << "Private Key : (" << d << "," << c << ")";
-
-        cout << endl << endl << endl << "----ENCRYPTION----" << endl;
-
-
-        cout << "Enter word to encrypt: " << endl;
-        char reply[1024];
-        cin.ignore();
-        cin.getline(reply, sizeof(reply));
-
-        cout << "Response is " << reply << endl;
-
-
-        vector<long> cipher = rsa->encryptAll(reply, e, c);
-
-        cout << "Decrypted Text: ";
-        rsa->decryptAll(cipher, d, c);
-
-    } else {
-
-        cout << "Error! Enter two prime numbers!";
-    }
-
-    return 0;
+    return d;
 
 }

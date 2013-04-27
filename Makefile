@@ -1,18 +1,17 @@
-all: rsa server client
+all: server client keys
 	
-rsa:
-	g++ -g -lm -o rsa rsa.cpp
-
 server:
-	g++ -O2 -lpthread -o server server.cpp csapp.cpp
+	g++ -O2 -lm -lpthread -g -o server rsa.cpp server.cpp csapp.cpp
 
 client:
-	g++ -O2 -lpthread -o client client.cpp csapp.cpp
+	g++ -O2 -lm -lpthread -g -o client rsa.cpp client.cpp csapp.cpp
+
+keys:
+	g++ -g -lm -o keys rsa.cpp keys.cpp
 
 clean:
-	rm rsa
 	rm server
 	rm client
+	rm keys
 
-run:
-	./rsa
+

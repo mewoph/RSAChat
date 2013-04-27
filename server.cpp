@@ -8,46 +8,58 @@
 #include <netdb.h>
 #include <errno.h>
 #include <pthread.h>
-#include <time.h>
 #include "csapp.h"
-
-
-pthread_mutex_t mutex;
+#include "rsa.h"
 
 using namespace std;
 
+RSA* rsa;
 
 /**
-* Log requests and responses to file
+* Edit the key associated with the current session
 */
-void logAction(const char* fileName, char* logMessage) {
-	FILE *file;
-	file = fopen(fileName,"a+"); // open file for append
-	fprintf(file,"%s\n",logMessage);
-	fclose(file);
+void editKey() {
+
+	cout << "--------------------" << endl << endl;
+
+	cout << "Public key is currently (" << rsa->getPublicKey() << ", " << rsa->getProduct() << ")." << endl << endl;
+
+	long key, n;
+	cout << "Enter your new key: ";
+	cin >> key;
+	cout << "Enter the new product: ";
+	cin >> n;
+
+	rsa->setPublicKey(key);
+	rsa->setProduct(n);
+
+	cout << "Public key is now (" << rsa->getPublicKey() << ", " << rsa->getProduct() << ")." << endl << endl;
+
+	cout << "--------------------" << endl << endl;
+
 }
 
 /**
-* Read entire message
-* Return the number of bytes read
+* Try to find private key
 */
-int readAll(int fd, char* buffer) {
+void findKey() {
 
-	int bytesRead = 0;
-	char c;
+	long key, n, guess;
 
-	recv(fd, &c, sizeof(c), 0);
+	cout << "--------------------" << endl << endl;
+	
+	cout << "Enter the public key to guess the private key: ";
+	cin >> key;
+	cout << "Enter the product associated with the key: ";
+	cin >> n;
 
-	while(c != '\0' && c != '\n') {
-		buffer[bytesRead] = c;
-		recv(fd, &c, sizeof(c), 0);
-		bytesRead++;
-	}
+	guess = rsa->findPrivateKey(key, n);
 
-	return bytesRead;
+	cout << "Try this key: (" << guess << "," << n << ")" << endl;
+
+	cout << "--------------------" << endl << endl;
+
 }
-
-
 
 /**
 * Respond to a request
@@ -70,25 +82,52 @@ void* respondRequest(void* desc) {
 
 		if (FD_ISSET(0, &rset)) {
 
-			// write message
+			// get message from user
 
 			bzero(&buf, sizeof(buf));
 			buf[1023] = '\0';
         	cin.getline(buf, sizeof(buf));
-			
-			int bytesWrote = write(fd, buf, sizeof(buf));
 
-			if (bytesWrote < 0) {
-				cout << "Write failed." << endl;
+        	// check for escaped keywords - .quit, .keys, .crack
+
+			if (strstr(buf, ".keys") != NULL) {
+				editKey();
+
+			} else if (strstr(buf, ".quit") != NULL) {	
+				write(fd, buf, sizeof(buf));
+				cout << "Exit server" << endl;
+				Close(fd);
 				exit(0);
+
+			} else if (strstr(buf, ".crack") != NULL) {
+				findKey();
+
+
+			} else {
+
+				// encrypt message
+
+				char cipher[1024];
+	        	bzero(&cipher, sizeof(cipher));
+	        	rsa->getEncryptedText(buf, cipher);
+
+				// write encrypted message to client
+
+				int bytesWrote = write(fd, cipher, sizeof(cipher));
+
+				if (bytesWrote < 0) {
+					cout << "Write failed." << endl;
+					Close(fd);
+					exit(0);
+				}
+
 			}
-			
 
 		} 
 
 		if (FD_ISSET(fd, &rset)) {
 		 	
-		 	// read message
+		 	// read message from client
 
 			bzero(&buf, sizeof(buf));
 			buf[1023] = '\0';
@@ -97,15 +136,21 @@ void* respondRequest(void* desc) {
 
 			if (bytesRead < 0) {
 				cout << "Read failed." << endl;
+				Close(fd);
 				exit(0);
 			}
 
 			if (strstr(buf, ".quit") != NULL) {	
-				printf("Exit server\n");
+				cout << "Exit server" << endl;
+				Close(fd);
 				exit(0);
-			} 
+			}
 
-			cout << "\nClient said: " << buf << endl;
+			// decrypt message 
+
+			cout << "Client: " << buf << endl;
+			cout << "Decrypted Message: ";
+			rsa->getDecryptedText(buf);
 
 		 } 
 		
@@ -115,8 +160,6 @@ void* respondRequest(void* desc) {
 
 int main(int argc, char *argv[]) {
 
-
-	pthread_mutex_init(&mutex, NULL);
 
 	int listenfd, connfd, port, clientlen;
 	struct sockaddr_in clientaddr;
@@ -130,8 +173,27 @@ int main(int argc, char *argv[]) {
 
 	listenfd = Open_listenfd(port);
 
-	cout << "Waiting for incoming connection..." << endl;
 
+	// Set up RSA for the server
+
+	cout << "Let's set up a secure chat." << endl << endl;
+	cout << "--------------------" << endl << endl;
+	rsa = new RSA(); 
+	long key, n;
+	cout << "Enter your key: ";
+	cin >> key;
+	cout << "Enter the product: ";
+	cin >> n;
+
+	rsa->setPublicKey(key);
+	rsa->setProduct(n);
+
+	cout << "Public key is now (" << rsa->getPublicKey() << ", " << rsa->getProduct() << ")." << endl << endl;
+	cout << "Enter '.quit' to exit program, enter '.keys' to change your keys, enter '.crack' to guess key." << endl << endl;
+	cout << "HAPPY CHATTING" << endl << endl;
+	cout << "--------------------" << endl << endl;
+
+	// Spawn thread to interact with client
 
 	while(1) {
 
