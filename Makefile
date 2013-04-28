@@ -14,4 +14,14 @@ clean:
 	rm client
 	rm keys
 
+runserver:
+	./server 8000
+
+runclient:
+	./client spec26 8000
+
+runkeys:
+	./keys
+
+
 
